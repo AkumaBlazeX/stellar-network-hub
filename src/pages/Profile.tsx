@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { userAPI } from '@/services/mockAPI';
 import { useToast } from '@/hooks/use-toast';
+import { EditProfileModal } from '@/components/profile/EditProfileModal';
 
 export default function Profile() {
   const { user, updateProfile } = useAuth();
@@ -307,6 +308,12 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        open={isEditing}
+        onOpenChange={setIsEditing}
+      />
     </div>
   );
 }

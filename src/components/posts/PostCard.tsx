@@ -25,6 +25,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { postsAPI } from '@/services/mockAPI';
 import { Post } from '@/types';
+import { Textarea } from '@/components/ui/textarea';
 
 interface PostCardProps {
   post: Post;
@@ -37,6 +38,9 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
   const { toast } = useToast();
   const [isLiking, setIsLiking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const isOwnPost = user?.id === post.authorId;
 
@@ -87,6 +91,49 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
     });
   };
 
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditContent(post.content);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditContent(post.content);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editContent.trim()) {
+      toast({
+        title: "Empty content",
+        description: "Post content cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const updatedPost = await postsAPI.updatePost(post.id, {
+        content: editContent.trim(),
+        imageUrl: post.images?.[0] || undefined,
+      });
+      onUpdate(updatedPost);
+      setIsEditing(false);
+      toast({
+        title: "Post updated",
+        description: "Your post has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error updating post",
+        description: "Failed to update post. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
     <Card className="bg-gradient-card border-0 shadow-medium hover:shadow-strong transition-all duration-300">
       <CardContent className="p-6">
@@ -123,7 +170,7 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
             <DropdownMenuContent align="end">
               {isOwnPost ? (
                 <>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleEdit} disabled={isEditing}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit post
                   </DropdownMenuItem>
@@ -159,9 +206,37 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
 
         {/* Post Content */}
         <div className="mb-4">
-          <p className="text-foreground leading-relaxed whitespace-pre-wrap">
-            {post.content}
-          </p>
+          {isEditing ? (
+            <div className="space-y-3">
+              <Textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="min-h-24 resize-none"
+                disabled={isUpdating}
+              />
+              <div className="flex items-center space-x-2">
+                <Button
+                  size="sm"
+                  onClick={handleSaveEdit}
+                  disabled={isUpdating || !editContent.trim()}
+                >
+                  {isUpdating ? 'Saving...' : 'Save'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={isUpdating}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-foreground leading-relaxed whitespace-pre-wrap">
+              {post.content}
+            </p>
+          )}
         </div>
 
         {/* Post Images */}

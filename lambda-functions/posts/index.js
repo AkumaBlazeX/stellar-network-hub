@@ -1,6 +1,7 @@
 const createPost = require('./createPost');
 const getPosts = require('./getPosts');
 const likePost = require('./likePost');
+const updatePost = require('./updatePost');
 
 exports.handler = async (event) => {
     const httpMethod = event.httpMethod;
@@ -14,12 +15,15 @@ exports.handler = async (event) => {
     
     try {
         // Route based on HTTP method and path
-        if (httpMethod === 'POST' && (path === '/posts' || path.includes('/posts'))) {
+        if (httpMethod === 'POST' && (path === '/posts' || path.includes('/posts')) && !path.includes('/like')) {
             console.log('Routing to createPost handler');
             return await createPost.handler(event);
         } else if (httpMethod === 'GET' && (path === '/posts' || path.includes('/posts'))) {
             console.log('Routing to getPosts handler');
             return await getPosts.handler(event);
+        } else if (httpMethod === 'PUT' && path.includes('/posts/') && !path.includes('/like')) {
+            console.log('Routing to updatePost handler');
+            return await updatePost.handler(event);
         } else if (httpMethod === 'POST' && path.includes('/posts/') && path.includes('/like')) {
             console.log('Routing to likePost handler');
             return await likePost.handler(event);
@@ -31,7 +35,7 @@ exports.handler = async (event) => {
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Headers': 'Content-Type',
-                    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+                    'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS'
                 },
                 body: JSON.stringify({ 
                     error: 'Endpoint not found',
@@ -52,7 +56,7 @@ exports.handler = async (event) => {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Headers': 'Content-Type',
-                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS'
             },
             body: JSON.stringify({ error: 'Internal server error' })
         };

@@ -217,6 +217,41 @@ export const postsAPI = {
     }
   },
 
+  // Update existing post
+  updatePost: async (postId: string, postData: { content: string; imageUrl?: string }): Promise<Post> => {
+    try {
+      console.log('🌐 Updating post via AWS API...');
+      const response = await apiCall(`/posts/${postId}`, {
+        method: 'PUT',
+        body: JSON.stringify(postData),
+      });
+      
+      // Transform backend response to match frontend expectations
+      const post = response.data || response;
+      return {
+        id: post.postId || post.id,
+        authorId: post.authorId,
+        author: {
+          id: post.authorId,
+          username: 'john_doe',
+          fullName: post.authorName || 'John Doe',
+          profilePicture: post.authorPicture || '',
+        },
+        content: post.content,
+        images: post.imageUrl ? [post.imageUrl] : [],
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        likes: post.likes || 0,
+        comments: post.comments || 0,
+        shares: 0,
+        isLiked: false,
+      };
+    } catch (error) {
+      console.error('❌ Error updating post:', error);
+      throw error;
+    }
+  },
+
   // Like/unlike post
   likePost: async (postId: string, userId: string): Promise<{ likes: number }> => {
     try {

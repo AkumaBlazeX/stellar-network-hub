@@ -86,7 +86,7 @@ exports.handler = async (event) => {
 
         const postUpdateParams = {
             TableName: 'professionalnet-posts',
-            Key: { id: postId },
+            Key: { postId: postId },
             UpdateExpression: updateExpression,
             ExpressionAttributeValues: expressionValues,
             ReturnValues: 'ALL_NEW'

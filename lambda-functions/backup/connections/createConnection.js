@@ -101,7 +101,7 @@ exports.handler = async (event) => {
 
         const followerUpdateParams = {
             TableName: 'professionalnet-users',
-            Key: { id: followerId },
+            Key: { userId: followerId },
             UpdateExpression: followerUpdateExpression,
             ExpressionAttributeValues: followerExpressionValues
         };
