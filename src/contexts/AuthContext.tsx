@@ -9,6 +9,7 @@ export interface User {
   username: string;
   fullName: string;
   profilePicture?: string;
+  coverImage?: string;
   bio?: string;
   location?: string;
   website?: string;
@@ -43,6 +44,7 @@ const mockUser: User = {
   username: 'johndoe',
   fullName: 'John Doe',
   profilePicture: '',
+  coverImage: '',
   bio: 'Software Developer passionate about building amazing products',
   location: 'San Francisco, CA',
   website: 'https://johndoe.dev',
@@ -62,8 +64,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedUser) {
       try {
         const userData = JSON.parse(storedUser);
-        setUser(userData);
-        console.log('👤 Loaded user from localStorage:', userData);
+        
+        // Validate and ensure all required fields are present
+        const validatedUser: User = {
+          id: userData.id || `user-${Date.now()}`,
+          email: userData.email || 'user@example.com',
+          username: userData.username || 'user',
+          fullName: userData.fullName || 'User',
+          profilePicture: userData.profilePicture || '',
+          coverImage: userData.coverImage || '',
+          bio: userData.bio || 'Software Developer',
+          location: userData.location || 'New York',
+          website: userData.website || '',
+          connections: userData.connections || 0,
+          posts: userData.posts || 0,
+          createdAt: userData.createdAt || new Date().toISOString(),
+        };
+        
+        setUser(validatedUser);
+        console.log('👤 Loaded and validated user from localStorage:', validatedUser);
       } catch (error) {
         console.error('❌ Error parsing stored user:', error);
         setUser(null);
@@ -71,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       setUser(null);
     }
-      setIsLoading(false);
+    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -83,13 +102,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: `user-${Date.now()}`, // Generate unique ID
         email: email,
         username: email.split('@')[0],
-        fullName: 'John Doe',
+        fullName: 'User',
         profilePicture: '',
+        coverImage: '',
         bio: 'Software Developer',
         location: 'New York',
         website: '',
-        connections: 150,
-        posts: 25,
+        connections: 0,
+        posts: 0,
         createdAt: new Date().toISOString(),
       };
       console.log('👤 Setting user:', mockUser);
@@ -116,6 +136,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: userData.email,
         username: userData.username,
         fullName: userData.fullName,
+        profilePicture: '',
+        coverImage: '',
+        bio: '',
+        location: '',
+        website: '',
         connections: 0,
         posts: 0,
         createdAt: new Date().toISOString(),
@@ -133,19 +158,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateProfile = async (userData: Partial<User>): Promise<boolean> => {
     try {
       console.log('👤 Profile Update via AWS API:', userData);
+      console.log('👤 Current user before update:', user);
       
       if (user) {
         // Call AWS API to update user profile
         const updatedUser = await userAPI.updateUser(user.id, userData);
+        console.log('✅ Updated user from API:', updatedUser);
+        
         if (updatedUser) {
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        return true;
+          // Create a completely new user object with merged data
+          const newUser: User = {
+            ...user,
+            ...userData,
+            fullName: userData.fullName || user.fullName,
+            bio: userData.bio || user.bio,
+            location: userData.location || user.location,
+            website: userData.website || user.website,
+            profilePicture: userData.profilePicture !== undefined ? userData.profilePicture : user.profilePicture,
+            coverImage: (userData as any).coverImage !== undefined ? (userData as any).coverImage : (user as any).coverImage,
+          } as User;
+          
+          console.log('🔍 updateProfile - userData.profilePicture:', userData.profilePicture);
+          console.log('🔍 updateProfile - user.profilePicture:', user.profilePicture);
+          console.log('🔍 updateProfile - newUser.profilePicture:', newUser.profilePicture);
+          console.log('🔍 updateProfile - userData.coverImage:', (userData as any).coverImage);
+          console.log('🔍 updateProfile - user.coverImage:', (user as any).coverImage);
+          console.log('🔍 updateProfile - newUser.coverImage:', (newUser as any).coverImage);
+          
+          console.log('✅ Final merged user object:', newUser);
+          
+          // Update state and localStorage
+          setUser(newUser);
+          localStorage.setItem('user', JSON.stringify(newUser));
+          
+          console.log('✅ User state and localStorage updated');
+          
+          return true;
+        } else {
+          console.error('❌ Profile update failed: No user data returned');
+          return false;
         }
+      } else {
+        console.error('❌ Profile update failed: No current user');
+        return false;
       }
-      return false;
     } catch (error) {
-      console.error('Profile update error:', error);
+      console.error('❌ Profile update error:', error);
       return false;
     }
   };

@@ -79,7 +79,7 @@ export default function Dashboard() {
                 <div className="text-center space-y-4">
                   <div className="w-20 h-20 bg-gradient-primary rounded-full mx-auto flex items-center justify-center">
                     <span className="text-primary-foreground font-bold text-2xl">
-                      {user.fullName.charAt(0).toUpperCase()}
+                      {(user.fullName && user.fullName.charAt(0)) || 'U'}
                     </span>
                   </div>
                   <div>

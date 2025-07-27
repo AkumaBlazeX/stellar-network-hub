@@ -12,7 +12,7 @@ exports.handler = async (event) => {
     
     try {
         // Route based on HTTP method and path
-        if (httpMethod === 'POST' && (path === '/upload' || path.includes('/upload'))) {
+        if (httpMethod === 'POST' && path.includes('upload')) {
             console.log('Routing to uploadFile handler');
             return await uploadFile.handler(event);
         } else {

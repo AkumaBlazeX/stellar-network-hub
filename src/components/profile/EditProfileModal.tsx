@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Loader2, Camera, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { uploadAPI } from '@/services/mockAPI';
 
 interface EditProfileModalProps {
   open: boolean;
@@ -23,11 +25,27 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: user?.fullName || '',
-    bio: user?.bio || '',
-    location: user?.location || '',
-    website: user?.website || '',
+    fullName: '',
+    bio: '',
+    location: '',
+    website: '',
   });
+  const [selectedProfileImage, setSelectedProfileImage] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string>('');
+
+  // Update form data when user changes or modal opens
+  React.useEffect(() => {
+    if (user && open) {
+      setFormData({
+        fullName: user.fullName || '',
+        bio: user.bio || '',
+        location: user.location || '',
+        website: user.website || '',
+      });
+      setProfileImagePreview(user.profilePicture || '');
+      setSelectedProfileImage(null);
+    }
+  }, [user, open]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -36,20 +54,75 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
     }));
   };
 
+  const handleProfileImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File too large",
+          description: "Profile image must be less than 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setSelectedProfileImage(file);
+      setProfileImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const removeProfileImage = () => {
+    setSelectedProfileImage(null);
+    setProfileImagePreview('');
+  };
+
   const handleSubmit = async () => {
+    console.log('🔄 Starting profile update with data:', formData);
     setIsSubmitting(true);
     try {
-      const success = await updateProfile(formData);
+      let profilePictureUrl = user?.profilePicture || '';
+      
+      // Upload profile image if selected
+      if (selectedProfileImage) {
+        console.log('📤 Uploading profile image...');
+        try {
+          const uploadResult = await uploadAPI.uploadFile(selectedProfileImage, user.id);
+          profilePictureUrl = uploadResult.fileUrl;
+          console.log('✅ Profile image uploaded:', profilePictureUrl);
+        } catch (uploadError) {
+          console.error('❌ Profile image upload failed:', uploadError);
+          toast({
+            title: "Image upload failed",
+            description: "Failed to upload profile image. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
+      // Update profile with all data including image
+      const updateData = {
+        ...formData,
+        profilePicture: profilePictureUrl,
+      };
+      
+      console.log('📞 Calling updateProfile function with:', updateData);
+      const success = await updateProfile(updateData);
+      console.log('✅ updateProfile result:', success);
+      
       if (success) {
+        console.log('🎉 Profile update successful!');
         toast({
           title: "Profile updated",
           description: "Your profile has been updated successfully.",
         });
         onOpenChange(false);
       } else {
+        console.error('❌ Profile update returned false');
         throw new Error('Update failed');
       }
     } catch (error) {
+      console.error('❌ Profile update error:', error);
       toast({
         title: "Error updating profile",
         description: "Failed to update profile. Please try again.",
@@ -83,6 +156,56 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
         </DialogHeader>
         
         <div className="space-y-6">
+          {/* Profile Picture */}
+          <div className="space-y-2">
+            <Label>Profile Picture</Label>
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-20 w-20">
+                <AvatarImage 
+                  src={profileImagePreview || user?.profilePicture} 
+                  alt={user?.fullName || 'Profile'} 
+                />
+                <AvatarFallback className="bg-gradient-primary text-primary-foreground text-2xl">
+                  {(user?.fullName && user.fullName.charAt(0)) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex space-x-2">
+                <label htmlFor="profile-image-upload">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cursor-pointer"
+                    disabled={isSubmitting}
+                    asChild
+                  >
+                    <span>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Change Photo
+                    </span>
+                  </Button>
+                </label>
+                <input
+                  id="profile-image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleProfileImageSelect}
+                  disabled={isSubmitting}
+                />
+                {profileImagePreview && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={removeProfileImage}
+                    disabled={isSubmitting}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Full Name */}
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>

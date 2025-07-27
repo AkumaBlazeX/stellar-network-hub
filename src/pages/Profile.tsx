@@ -1,21 +1,63 @@
-import { useState } from 'react';
-import { Camera, MapPin, Globe, Calendar, Edit2, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Camera, MapPin, Globe, Calendar, Edit2, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { userAPI } from '@/services/mockAPI';
+import { userAPI, uploadAPI } from '@/services/mockAPI';
 import { useToast } from '@/hooks/use-toast';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 
 export default function Profile() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [coverImage, setCoverImage] = useState<string>('');
+  const [selectedCoverImage, setSelectedCoverImage] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string>('');
 
-  if (!user) return null;
+  // Update cover image when user changes
+  React.useEffect(() => {
+    if (user) {
+      console.log('🔄 Profile useEffect - User coverImage:', (user as any).coverImage);
+      setCoverImage((user as any).coverImage || '');
+    }
+  }, [user]);
+
+  // Show loading state while auth is loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-surface flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if no user
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-surface flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Profile Not Found</h2>
+          <p className="text-muted-foreground mb-4">Please log in to view your profile.</p>
+          <Button onClick={() => window.location.href = '/login'}>
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Debug: Log user object to see what we're working with
+  console.log('🔍 Profile component - User object:', user);
+  console.log('🔍 Profile component - User fullName:', user.fullName);
+  console.log('🔍 Profile component - User bio:', user.bio);
+  console.log('🔍 Profile component - User location:', user.location);
 
   // Mock data - will be replaced with real data from AWS
   const userExperience = [
@@ -58,6 +100,81 @@ export default function Profile() {
     'Docker', 'PostgreSQL', 'GraphQL', 'REST APIs', 'Git', 'Agile'
   ];
 
+  const handleCoverImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit for cover images
+        toast({
+          title: "File too large",
+          description: "Cover image must be less than 10MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setSelectedCoverImage(file);
+      setCoverImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleCoverImageUpload = async () => {
+    if (!selectedCoverImage || !user) return;
+    
+    setIsLoading(true);
+    try {
+      console.log('📤 Uploading cover image...');
+      const uploadResult = await uploadAPI.uploadFile(selectedCoverImage, user.id);
+      const coverImageUrl = uploadResult.fileUrl;
+      
+      console.log('✅ Cover image uploaded:', coverImageUrl);
+      console.log('📞 Calling updateProfile with coverImage:', coverImageUrl);
+      
+      // Update user profile with new cover image
+      const success = await updateProfile({ coverImage: coverImageUrl } as any);
+      
+      console.log('✅ updateProfile result:', success);
+      
+      if (success) {
+        console.log('🎉 Cover image update successful!');
+        setCoverImage(coverImageUrl);
+        setSelectedCoverImage(null);
+        setCoverImagePreview('');
+        
+        // Force a small delay to ensure state updates
+        setTimeout(() => {
+          console.log('🔄 Forcing cover image state update...');
+          setCoverImage(coverImageUrl);
+        }, 100);
+        
+        toast({
+          title: "Cover image updated",
+          description: "Your cover image has been updated successfully.",
+        });
+      } else {
+        console.error('❌ Cover image update failed - updateProfile returned false');
+        toast({
+          title: "Update failed",
+          description: "Failed to update profile with cover image.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('❌ Cover image upload failed:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload cover image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const removeCoverImage = () => {
+    setSelectedCoverImage(null);
+    setCoverImagePreview('');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-surface">
       <div className="container mx-auto px-4 py-8">
@@ -66,15 +183,62 @@ export default function Profile() {
           <Card className="bg-gradient-card border-0 shadow-strong relative overflow-hidden">
             {/* Cover Image */}
             <div className="h-48 bg-gradient-primary relative">
+              {(coverImage || coverImagePreview) && (
+                <img
+                  src={coverImagePreview || coverImage}
+                  alt="Cover"
+                  className="w-full h-full object-cover"
+                />
+              )}
               <div className="absolute inset-0 bg-black/20"></div>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="absolute top-4 right-4"
-              >
-                <Camera className="h-4 w-4 mr-2" />
-                Edit cover
-              </Button>
+              
+              {/* Cover Image Upload Controls */}
+              <div className="absolute top-4 right-4 flex space-x-2">
+                {selectedCoverImage && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleCoverImageUpload}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'Uploading...' : 'Save'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={removeCoverImage}
+                      disabled={isLoading}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                {!selectedCoverImage && (
+                  <label htmlFor="cover-image-upload">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="cursor-pointer"
+                      disabled={isLoading}
+                      asChild
+                    >
+                      <span>
+                        <Camera className="h-4 w-4 mr-2" />
+                        {coverImage ? 'Change cover' : 'Add cover'}
+                      </span>
+                    </Button>
+                  </label>
+                )}
+                <input
+                  id="cover-image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCoverImageSelect}
+                  disabled={isLoading}
+                />
+              </div>
             </div>
 
             <CardContent className="p-8 -mt-16 relative">
@@ -82,33 +246,101 @@ export default function Profile() {
                 {/* Profile Picture */}
                 <div className="relative">
                   <Avatar className="h-32 w-32 border-4 border-card">
-                    <AvatarImage src={user.profilePicture} alt={user.fullName} />
+                    <AvatarImage src={user.profilePicture} alt={user.fullName || 'User'} />
                     <AvatarFallback className="bg-gradient-primary text-primary-foreground text-4xl">
-                      {user.fullName.charAt(0).toUpperCase()}
+                      {(user.fullName && user.fullName.charAt(0)) || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="absolute bottom-0 right-0 rounded-full w-10 h-10 p-0"
-                  >
-                    <Camera className="h-4 w-4" />
-                  </Button>
+                  <label htmlFor="profile-picture-upload">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="absolute bottom-0 right-0 rounded-full w-10 h-10 p-0 cursor-pointer"
+                      asChild
+                    >
+                      <span>
+                        <Camera className="h-4 w-4" />
+                      </span>
+                    </Button>
+                  </label>
+                  <input
+                    id="profile-picture-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        // This will be handled by the EditProfileModal
+                        // For now, just show a toast
+                        toast({
+                          title: "Profile picture",
+                          description: "Please use the Edit Profile modal to change your profile picture.",
+                        });
+                      }
+                    }}
+                  />
                 </div>
 
                 {/* Profile Info */}
                 <div className="flex-1 space-y-2">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                     <div>
-                      <h1 className="text-3xl font-bold">{user.fullName}</h1>
+                      <h1 className="text-3xl font-bold">{user.fullName || 'User'}</h1>
                       <p className="text-lg text-muted-foreground">
                         Software Engineer at TechCorp Inc.
                       </p>
                     </div>
-                    <Button onClick={() => setIsEditing(true)}>
-                      <Edit2 className="h-4 w-4 mr-2" />
-                      Edit Profile
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button onClick={() => setIsEditing(true)}>
+                        <Edit2 className="h-4 w-4 mr-2" />
+                        Edit Profile
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={async () => {
+                          console.log('🧪 Testing upload connection...');
+                          try {
+                            // First test if API endpoint is reachable
+                            const simpleTest = await uploadAPI.simpleTest();
+                            console.log('🧪 Simple test result:', simpleTest);
+                            
+                            if (!simpleTest) {
+                              toast({
+                                title: "API endpoint not reachable",
+                                description: "Cannot connect to upload API. Check API Gateway.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            // Then test the actual upload
+                            const result = await uploadAPI.testUpload();
+                            if (result) {
+                              toast({
+                                title: "Upload test successful",
+                                description: "S3 upload is working correctly.",
+                              });
+                            } else {
+                              toast({
+                                title: "Upload test failed",
+                                description: "S3 upload is not working. Check console for details.",
+                                variant: "destructive",
+                              });
+                            }
+                          } catch (error) {
+                            console.error('❌ Upload test error:', error);
+                            toast({
+                              title: "Upload test error",
+                              description: "Error testing upload connection.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        Test Upload
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
