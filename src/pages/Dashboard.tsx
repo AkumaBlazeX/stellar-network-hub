@@ -7,6 +7,7 @@ import { postsAPI } from '@/services/mockAPI';
 import { Post } from '@/types';
 import { PostCard } from '@/components/posts/PostCard';
 import { CreatePostModal } from '@/components/posts/CreatePostModal';
+import { PeopleYouMayKnow } from '@/components/PeopleYouMayKnow';
 
 export default function Dashboard() {
   const { user, updateProfile } = useAuth();
@@ -220,42 +221,8 @@ export default function Dashboard() {
 
           {/* Right Sidebar - Suggestions & Trending */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Network Suggestions */}
-            <Card className="bg-gradient-card border-0 shadow-medium">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center">
-                  <Users className="h-4 w-4 mr-2" />
-                  People you may know
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {[
-                  { name: 'Sarah Chen', role: 'Product Designer', mutualConnections: 5 },
-                  { name: 'Alex Rivera', role: 'Software Engineer', mutualConnections: 3 },
-                  { name: 'Emily Johnson', role: 'Marketing Manager', mutualConnections: 8 },
-                ].map((person, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center">
-                        <span className="text-primary-foreground font-semibold text-sm">
-                          {person.name.charAt(0)}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">{person.name}</p>
-                        <p className="text-xs text-muted-foreground">{person.role}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {person.mutualConnections} mutual connections
-                        </p>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline">
-                      Connect
-                    </Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+            {/* People You May Know */}
+            <PeopleYouMayKnow className="bg-gradient-card border-0 shadow-medium" />
 
             {/* Trending Topics */}
             <Card className="bg-gradient-card border-0 shadow-medium">
