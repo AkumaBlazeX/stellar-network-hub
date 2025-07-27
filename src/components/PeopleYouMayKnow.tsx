@@ -167,31 +167,17 @@ export function PeopleYouMayKnow({ className }: PeopleYouMayKnowProps) {
             const isFollowing = following.has(user.id);
             
             return (
-              <div key={user.id} className="flex items-center space-x-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={user.profilePicture} alt={user.fullName} />
-                  <AvatarFallback className="bg-gradient-primary text-primary-foreground">
-                    {user.fullName.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2">
-                    <h4 className="text-sm font-semibold truncate">{user.fullName}</h4>
-                    {user.location && (
-                      <Badge variant="secondary" className="text-xs">
-                        {user.location}
-                      </Badge>
-                    )}
-                  </div>
-                  {user.bio && (
-                    <p className="text-xs text-muted-foreground truncate">
-                      {user.bio}
-                    </p>
-                  )}
-                  <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
-                    <span>{user.connections} connections</span>
-                    <span>{user.posts} posts</span>
+              <div key={user.id} className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user.profilePicture} alt={user.fullName} />
+                    <AvatarFallback className="bg-gradient-primary text-primary-foreground">
+                      {user.fullName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div>
+                    <h4 className="font-medium text-sm">{user.fullName}</h4>
                   </div>
                 </div>
                 
