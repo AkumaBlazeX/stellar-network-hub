@@ -1,4 +1,4 @@
-import { useState } from 'react';
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,20 +22,48 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(''); // Clear previous errors
+
+    // Client-side validation
+    if (!email.trim()) {
+      setError('Please enter your email address');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!password.trim()) {
+      setError('Please enter your password');
+      setIsLoading(false);
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const success = await login(email, password);
       if (success) {
+        toast({
+          title: "Welcome back!",
+          description: "Successfully signed in to your account.",
+        });
         navigate('/dashboard');
       } else {
+        setError('Invalid email or password. Please check your credentials and try again.');
         toast({
           title: "Login failed",
-          description: "Please check your credentials and try again.",
+          description: "Invalid email or password. Please check your credentials and try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error('Login error:', error);
+      setError('An error occurred during login. Please try again.');
       toast({
         title: "Login error",
         description: "Something went wrong. Please try again.",
@@ -166,9 +194,81 @@ export default function Login() {
                 to="/register" 
                 className="text-primary hover:underline font-medium"
               >
-                Sign up here
+                Sign up
               </Link>
             </div>
+
+            {/* Test Section - Only show in development */}
+            {import.meta.env.DEV && (
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                <h3 className="text-sm font-medium mb-2">🧪 Test Accounts (Development Only)</h3>
+                <div className="text-xs space-y-1 text-muted-foreground">
+                  <div><strong>Email:</strong> john@example.com | <strong>Password:</strong> password</div>
+                  <div><strong>Email:</strong> jane@example.com | <strong>Password:</strong> password</div>
+                  <div className="mt-2 text-xs">
+                    <button 
+                      onClick={() => {
+                        // Create demo users
+                        const demoUsers = [
+                          {
+                            id: 'demo-user-1',
+                            email: 'john@example.com',
+                            username: 'john_doe',
+                            fullName: 'John Doe',
+                            profilePicture: '',
+                            coverImage: '',
+                            bio: 'Software Developer at Tech Corp',
+                            location: 'San Francisco',
+                            website: 'https://johndoe.dev',
+                            connections: 150,
+                            posts: 25,
+                            createdAt: '2024-01-15T10:00:00Z',
+                            hashedPassword: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8'
+                          },
+                          {
+                            id: 'demo-user-2',
+                            email: 'jane@example.com',
+                            username: 'jane_smith',
+                            fullName: 'Jane Smith',
+                            profilePicture: '',
+                            coverImage: '',
+                            bio: 'Product Manager',
+                            location: 'New York',
+                            website: '',
+                            connections: 89,
+                            posts: 12,
+                            createdAt: '2024-01-20T14:30:00Z',
+                            hashedPassword: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8'
+                          }
+                        ];
+                        localStorage.setItem('users', JSON.stringify(demoUsers));
+                        toast({
+                          title: "Demo users created",
+                          description: "You can now test with john@example.com or jane@example.com (password: password)",
+                        });
+                      }}
+                      className="text-primary hover:underline"
+                    >
+                      Create Demo Users
+                    </button>
+                    {' | '}
+                    <button 
+                      onClick={() => {
+                        localStorage.removeItem('users');
+                        localStorage.removeItem('user');
+                        toast({
+                          title: "Users cleared",
+                          description: "All users have been removed. You'll need to register new accounts.",
+                        });
+                      }}
+                      className="text-destructive hover:underline"
+                    >
+                      Clear All Users
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

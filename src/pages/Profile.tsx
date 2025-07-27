@@ -296,50 +296,6 @@ export default function Profile() {
                         <Edit2 className="h-4 w-4 mr-2" />
                         Edit Profile
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={async () => {
-                          console.log('🧪 Testing upload connection...');
-                          try {
-                            // First test if API endpoint is reachable
-                            const simpleTest = await uploadAPI.simpleTest();
-                            console.log('🧪 Simple test result:', simpleTest);
-                            
-                            if (!simpleTest) {
-                              toast({
-                                title: "API endpoint not reachable",
-                                description: "Cannot connect to upload API. Check API Gateway.",
-                                variant: "destructive",
-                              });
-                              return;
-                            }
-                            
-                            // Then test the actual upload
-                            const result = await uploadAPI.testUpload();
-                            if (result) {
-                              toast({
-                                title: "Upload test successful",
-                                description: "S3 upload is working correctly.",
-                              });
-                            } else {
-                              toast({
-                                title: "Upload test failed",
-                                description: "S3 upload is not working. Check console for details.",
-                                variant: "destructive",
-                              });
-                            }
-                          } catch (error) {
-                            console.error('❌ Upload test error:', error);
-                            toast({
-                              title: "Upload test error",
-                              description: "Error testing upload connection.",
-                              variant: "destructive",
-                            });
-                          }
-                        }}
-                      >
-                        Test Upload
-                      </Button>
                     </div>
                   </div>
 

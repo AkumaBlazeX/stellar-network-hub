@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ArrowLeft, Check } from 'lucide-react';
+import { Eye, EyeOff, Check, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { SecurityUtils } from '@/utils/security';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -21,6 +22,7 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
   
   const { register } = useAuth();
   const { toast } = useToast();
@@ -34,76 +36,66 @@ export default function Register() {
   };
 
   const validateForm = () => {
-    if (!formData.fullName.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter your full name.",
-        variant: "destructive",
-      });
-      return false;
+    const errors: string[] = [];
+
+    // Email validation
+    if (!SecurityUtils.isValidEmail(formData.email)) {
+      errors.push('Please enter a valid email address');
     }
 
-    if (!formData.username.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter a username.",
-        variant: "destructive",
-      });
-      return false;
+    // Password validation using SecurityUtils
+    const passwordValidation = SecurityUtils.validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      errors.push(...passwordValidation.errors);
     }
 
+    // Username validation
     if (formData.username.length < 3) {
-      toast({
-        title: "Validation Error",
-        description: "Username must be at least 3 characters long.",
-        variant: "destructive",
-      });
-      return false;
+      errors.push('Username must be at least 3 characters long');
     }
 
-    if (!formData.email.includes('@')) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter a valid email address.",
-        variant: "destructive",
-      });
-      return false;
+    // Full name validation
+    if (formData.fullName.length < 2) {
+      errors.push('Full name must be at least 2 characters long');
     }
 
-    if (formData.password.length < 6) {
-      toast({
-        title: "Validation Error",
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Validation Error",
-        description: "Passwords do not match.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!agreeToTerms) {
-      toast({
-        title: "Validation Error",
-        description: "Please agree to the Terms of Service and Privacy Policy.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    return true;
+    setFormErrors(errors);
+    return errors.length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      // Show first error in toast
+      if (formErrors.length > 0) {
+        toast({
+          title: "Registration failed",
+          description: formErrors[0],
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    // Additional validation
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Registration failed",
+        description: "Passwords do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!agreeToTerms) {
+      toast({
+        title: "Registration failed",
+        description: "Please agree to the Terms of Service and Privacy Policy.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsLoading(true);
 
@@ -124,7 +116,7 @@ export default function Register() {
       } else {
         toast({
           title: "Registration failed",
-          description: "Unable to create account. Please try again.",
+          description: "Unable to create account. Please check your information and try again.",
           variant: "destructive",
         });
       }
@@ -139,12 +131,7 @@ export default function Register() {
     }
   };
 
-  const passwordStrength = {
-    hasLength: formData.password.length >= 6,
-    hasUppercase: /[A-Z]/.test(formData.password),
-    hasLowercase: /[a-z]/.test(formData.password),
-    hasNumber: /\d/.test(formData.password),
-  };
+  const passwordStrength = SecurityUtils.validatePassword(formData.password);
 
   return (
     <div className="min-h-screen bg-gradient-surface flex items-center justify-center p-4">
@@ -250,30 +237,29 @@ export default function Register() {
                 </div>
                 
                 {/* Password Strength Indicator */}
-                {formData.password && (
-                  <div className="space-y-2 mt-2">
-                    <div className="text-xs text-muted-foreground">Password strength:</div>
-                    <div className="space-y-1">
-                      {[
-                        { check: passwordStrength.hasLength, text: "At least 6 characters" },
-                        { check: passwordStrength.hasUppercase, text: "One uppercase letter" },
-                        { check: passwordStrength.hasLowercase, text: "One lowercase letter" },
-                        { check: passwordStrength.hasNumber, text: "One number" },
-                      ].map((requirement, index) => (
-                        <div key={index} className="flex items-center text-xs">
-                          <Check 
-                            className={`h-3 w-3 mr-2 ${
-                              requirement.check ? 'text-green-500' : 'text-muted-foreground'
-                            }`} 
-                          />
-                          <span className={requirement.check ? 'text-green-500' : 'text-muted-foreground'}>
-                            {requirement.text}
-                          </span>
-                        </div>
-                      ))}
+                <div className="space-y-2">
+                  <Label>Password Strength</Label>
+                  <div className="space-y-1">
+                    <div className={`flex items-center gap-2 text-sm ${passwordStrength.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                      {passwordStrength.isValid ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <X className="h-4 w-4" />
+                      )}
+                      {passwordStrength.isValid ? 'Strong password' : 'Password needs improvement'}
                     </div>
+                    {!passwordStrength.isValid && (
+                      <ul className="text-xs text-red-600 space-y-1">
+                        {passwordStrength.errors.map((error, index) => (
+                          <li key={index} className="flex items-center gap-1">
+                            <X className="h-3 w-3" />
+                            {error}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -334,6 +320,92 @@ export default function Register() {
                 {isLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
             </form>
+
+            {/* Test Section - Only show in development */}
+            {import.meta.env.DEV && (
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                <h3 className="text-sm font-medium mb-2">🧪 Test Accounts (Development Only)</h3>
+                <div className="text-xs space-y-1 text-muted-foreground">
+                  <div><strong>Email:</strong> john@example.com | <strong>Password:</strong> password</div>
+                  <div><strong>Email:</strong> jane@example.com | <strong>Password:</strong> password</div>
+                  <div className="mt-2 text-xs">
+                    <button 
+                      onClick={() => {
+                        // Create demo users
+                        const demoUsers = [
+                          {
+                            id: 'demo-user-1',
+                            email: 'john@example.com',
+                            username: 'john_doe',
+                            fullName: 'John Doe',
+                            profilePicture: '',
+                            coverImage: '',
+                            bio: 'Software Developer at Tech Corp',
+                            location: 'San Francisco',
+                            website: 'https://johndoe.dev',
+                            connections: 150,
+                            posts: 25,
+                            createdAt: '2024-01-15T10:00:00Z',
+                            hashedPassword: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8'
+                          },
+                          {
+                            id: 'demo-user-2',
+                            email: 'jane@example.com',
+                            username: 'jane_smith',
+                            fullName: 'Jane Smith',
+                            profilePicture: '',
+                            coverImage: '',
+                            bio: 'Product Manager',
+                            location: 'New York',
+                            website: '',
+                            connections: 89,
+                            posts: 12,
+                            createdAt: '2024-01-20T14:30:00Z',
+                            hashedPassword: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8'
+                          }
+                        ];
+                        localStorage.setItem('users', JSON.stringify(demoUsers));
+                        toast({
+                          title: "Demo users created",
+                          description: "You can now test with john@example.com or jane@example.com (password: password)",
+                        });
+                      }}
+                      className="text-primary hover:underline"
+                    >
+                      Create Demo Users
+                    </button>
+                    {' | '}
+                    <button 
+                      onClick={() => {
+                        localStorage.removeItem('users');
+                        localStorage.removeItem('user');
+                        toast({
+                          title: "Users cleared",
+                          description: "All users have been removed. You'll need to register new accounts.",
+                        });
+                      }}
+                      className="text-destructive hover:underline"
+                    >
+                      Clear All Users
+                    </button>
+                    {' | '}
+                    <button 
+                      onClick={() => {
+                        const users = JSON.parse(localStorage.getItem('users') || '[]');
+                        console.log('Current users in localStorage:', users);
+                        toast({
+                          title: "Debug Info",
+                          description: `Found ${users.length} users in localStorage. Check console for details.`,
+                        });
+                      }}
+                      className="text-blue-500 hover:underline"
+                    >
+                      Debug Users
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="mt-6 text-center text-sm">
               <span className="text-muted-foreground">Already have an account? </span>

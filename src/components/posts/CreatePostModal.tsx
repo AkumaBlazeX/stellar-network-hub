@@ -46,6 +46,7 @@ export function CreatePostModal({ open, onOpenChange, onPostCreated }: CreatePos
   };
 
   const handleSubmit = async () => {
+    
     if (!content.trim() && selectedImages.length === 0) {
       toast({
         title: "Empty post",
@@ -57,31 +58,64 @@ export function CreatePostModal({ open, onOpenChange, onPostCreated }: CreatePos
 
     setIsSubmitting(true);
     try {
+      console.log('🚀 Starting post creation...');
+      console.log('📝 Content:', content);
+      console.log('🖼️ Selected images:', selectedImages.length, selectedImages.map(img => img.name));
+      
       // Upload images first (if any)
       let imageUrls: string[] = [];
       if (selectedImages.length > 0) {
-        console.log('📤 Uploading', selectedImages.length, 'images...');
+        console.log(`📤 Uploading ${selectedImages.length} images...`);
+        
         const uploadPromises = selectedImages.map(async (file, index) => {
-          console.log(`📤 Uploading image ${index + 1}:`, file.name, file.size, 'bytes');
-          const result = await uploadAPI.uploadFile(file, user.id);
-          console.log(`✅ Image ${index + 1} uploaded:`, result);
-          return result.fileUrl;
+          console.log(`📤 Uploading image ${index + 1}: ${file.name}`);
+          
+          try {
+            const result = await uploadAPI.uploadFile(file, user.id);
+            console.log(`✅ Image ${index + 1} uploaded: ${result.fileUrl.substring(0, 50)}...`);
+            
+            // Check if we got a real URL or the fallback SVG
+            if (result.fileUrl.includes('data:image/svg+xml')) {
+              console.warn(`⚠️ Image ${index + 1} got fallback SVG - API likely failed`);
+              toast({
+                title: "Image upload failed",
+                description: `Failed to upload ${file.name}. Using placeholder.`,
+                variant: "destructive",
+              });
+            }
+            
+            return result.fileUrl;
+          } catch (uploadError) {
+            console.error(`❌ Image ${index + 1} upload failed:`, uploadError);
+            toast({
+              title: "Image upload failed",
+              description: `Failed to upload ${file.name}. Please try again.`,
+              variant: "destructive",
+            });
+            throw uploadError; // Re-throw to stop the process
+          }
         });
-        imageUrls = await Promise.all(uploadPromises);
-        console.log('📤 All images uploaded:', imageUrls);
+        
+        try {
+          imageUrls = await Promise.all(uploadPromises);
+          console.log(`✅ All ${imageUrls.length} images uploaded successfully`);
+        } catch (error) {
+          console.error('❌ One or more image uploads failed:', error);
+          // Don't create the post if image uploads fail
+          return;
+        }
+      } else {
+        console.log('📝 No images to upload');
       }
 
       // Create the post
-      console.log('📝 Creating post with data:', {
-        userId: user.id,
-        content,
-        imageUrls: imageUrls
-      });
+      console.log('📝 Creating post...');
       const newPost = await postsAPI.createPost({
         userId: user.id,
         content,
         imageUrls: imageUrls,
       });
+      console.log('✅ Post created successfully');
       onPostCreated(newPost);
       
       // Reset form
@@ -93,6 +127,7 @@ export function CreatePostModal({ open, onOpenChange, onPostCreated }: CreatePos
         description: "Your post has been shared with your network.",
       });
     } catch (error) {
+      console.error('❌ Error creating post:', error);
       toast({
         title: "Error creating post",
         description: "Something went wrong. Please try again.",

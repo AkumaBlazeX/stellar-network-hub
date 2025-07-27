@@ -1,21 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { userAPI } from '../services/mockAPI';
-
-export interface User {
-  id: string;
-  email: string;
-  username: string;
-  fullName: string;
-  profilePicture?: string;
-  coverImage?: string;
-  bio?: string;
-  location?: string;
-  website?: string;
-  connections: number;
-  posts: number;
-  createdAt: string;
-}
+import { User } from '@/types';
+import { SecurityUtils } from '@/utils/security';
 
 interface AuthContextType {
   user: User | null;
@@ -80,10 +67,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       console.log('🔐 Login attempt for:', email);
+      console.log('🔍 Password provided:', !!password, 'Length:', password.length);
       
       // Basic validation
       if (!email || !password) {
         console.error('❌ Login failed: Missing email or password');
+        console.log('Debug - Email provided:', !!email, 'Password provided:', !!password);
         return false;
       }
 
@@ -91,56 +80,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         console.error('❌ Login failed: Invalid email format');
+        console.log('Debug - Email format test:', emailRegex.test(email));
         return false;
       }
 
       // Password length validation
       if (password.length < 6) {
         console.error('❌ Login failed: Password too short');
+        console.log('Debug - Password length:', password.length);
         return false;
       }
 
+      // Hash password for comparison
+      console.log('🔍 Hashing password for comparison...');
+      const hashedPassword = await SecurityUtils.hashData(password);
+      console.log('🔍 Password hashed successfully');
+
       // Check if user exists in localStorage (simulating database)
+      console.log('🔍 Checking for existing users...');
       const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      const existingUser = existingUsers.find((u: User) => u.email === email);
+      console.log('🔍 Total users in system:', existingUsers.length);
+      console.log('🔍 All users:', existingUsers.map(u => ({ email: u.email, username: u.username })));
+      
+      const existingUser = existingUsers.find((u: User & { hashedPassword?: string }) => u.email === email);
+      console.log('🔍 Found user by email:', existingUser ? 'Yes' : 'No');
       
       if (existingUser) {
-        // User exists - authenticate
-        console.log('✅ User found, authenticating...');
-        setUser(existingUser);
-        localStorage.setItem('user', JSON.stringify(existingUser));
-        return true;
+        // User exists - verify password hash
+        console.log('🔍 Comparing password hashes...');
+        console.log('🔍 Stored hash:', existingUser.hashedPassword);
+        console.log('🔍 Input hash:', hashedPassword);
+        console.log('🔍 Hashes match:', existingUser.hashedPassword === hashedPassword);
+        
+        if (existingUser.hashedPassword === hashedPassword) {
+          console.log('✅ User found, password verified...');
+          // Remove hashed password from user object before setting
+          const { hashedPassword: _, ...userWithoutPassword } = existingUser;
+          setUser(userWithoutPassword);
+          localStorage.setItem('user', JSON.stringify(userWithoutPassword));
+          return true;
+        } else {
+          console.error('❌ Login failed: Invalid password');
+          console.log('Debug - Password hash mismatch');
+          return false;
+        }
       } else {
-        // User doesn't exist - create new user (for demo purposes)
-        console.log('🆕 User not found, creating new account...');
-        const newUser: User = {
-          id: uuidv4(),
-          email: email,
-          username: email.split('@')[0],
-          fullName: email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1),
-          profilePicture: '',
-          coverImage: '',
-          bio: 'Software Developer',
-          location: 'New York',
-          website: '',
-          connections: 0,
-          posts: 0,
-          createdAt: new Date().toISOString(),
-        };
-        
-        // Save new user to users list
-        existingUsers.push(newUser);
-        localStorage.setItem('users', JSON.stringify(existingUsers));
-        
-        // Set as current user
-        setUser(newUser);
-        localStorage.setItem('user', JSON.stringify(newUser));
-        
-        console.log('✅ New user created and logged in:', newUser);
-        return true;
+        // User doesn't exist - STRICT: Do NOT create new account
+        console.error('❌ Login failed: User not found. Please register first.');
+        console.log('Debug - No user found with email:', email);
+        return false;
       }
     } catch (error) {
       console.error('❌ Login error:', error);
+      console.log('Debug - Error details:', error);
       return false;
     }
   };
@@ -149,9 +141,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('📝 Registration attempt:', userData);
       
+      // Test SecurityUtils import
+      console.log('🔍 Testing SecurityUtils import...');
+      console.log('🔍 SecurityUtils available:', !!SecurityUtils);
+      console.log('🔍 validatePassword available:', !!SecurityUtils.validatePassword);
+      console.log('🔍 hashData available:', !!SecurityUtils.hashData);
+      
       // Validation
       if (!userData.email || !userData.password || !userData.username || !userData.fullName) {
         console.error('❌ Registration failed: Missing required fields');
+        console.log('Debug - Email:', !!userData.email, 'Password:', !!userData.password, 'Username:', !!userData.username, 'FullName:', !!userData.fullName);
         return false;
       }
 
@@ -159,29 +158,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(userData.email)) {
         console.error('❌ Registration failed: Invalid email format');
+        console.log('Debug - Email:', userData.email);
         return false;
       }
 
-      // Password length validation
-      if (userData.password.length < 6) {
-        console.error('❌ Registration failed: Password too short');
+      // Password validation using SecurityUtils
+      console.log('🔍 Checking password validation...');
+      console.log('🔍 Password length:', userData.password.length);
+      console.log('🔍 Password contains uppercase:', /[A-Z]/.test(userData.password));
+      console.log('🔍 Password contains lowercase:', /[a-z]/.test(userData.password));
+      console.log('🔍 Password contains number:', /\d/.test(userData.password));
+      console.log('🔍 Password contains special char:', /[!@#$%^&*(),.?":{}|<>]/.test(userData.password));
+      
+      const passwordValidation = SecurityUtils.validatePassword(userData.password);
+      console.log('🔍 Password validation result:', passwordValidation);
+      if (!passwordValidation.isValid) {
+        console.error('❌ Registration failed: Password does not meet requirements');
+        console.log('Debug - Password errors:', passwordValidation.errors);
         return false;
       }
 
       // Username validation
+      console.log('🔍 Checking username validation...');
+      console.log('🔍 Username:', userData.username);
+      console.log('🔍 Username length:', userData.username.length);
+      console.log('🔍 Username regex test:', /^[a-zA-Z0-9_]+$/.test(userData.username));
+      
       if (userData.username.length < 3) {
         console.error('❌ Registration failed: Username too short');
+        console.log('Debug - Username length:', userData.username.length);
         return false;
       }
 
-      // Check if user already exists
-      const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      const existingUser = existingUsers.find((u: User) => u.email === userData.email);
-      
-      if (existingUser) {
-        console.error('❌ Registration failed: User already exists');
+      // Username format validation (alphanumeric and underscores only)
+      const usernameRegex = /^[a-zA-Z0-9_]+$/;
+      if (!usernameRegex.test(userData.username)) {
+        console.error('❌ Registration failed: Username can only contain letters, numbers, and underscores');
+        console.log('Debug - Username:', userData.username);
         return false;
       }
+
+      // Full name validation
+      console.log('🔍 Checking full name validation...');
+      console.log('🔍 Full name:', userData.fullName);
+      console.log('🔍 Full name length:', userData.fullName.length);
+      
+      if (userData.fullName.length < 2) {
+        console.error('❌ Registration failed: Full name too short');
+        console.log('Debug - Full name length:', userData.fullName.length);
+        return false;
+      }
+
+      // Check if user already exists (email and username)
+      console.log('🔍 Checking for existing users...');
+      const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+      console.log('🔍 Existing users count:', existingUsers.length);
+      console.log('🔍 Existing users:', existingUsers);
+      
+      const existingUserByEmail = existingUsers.find((u: User) => u.email === userData.email);
+      const existingUserByUsername = existingUsers.find((u: User) => u.username === userData.username);
+      
+      console.log('🔍 Existing user by email:', existingUserByEmail);
+      console.log('🔍 Existing user by username:', existingUserByUsername);
+      
+      if (existingUserByEmail) {
+        console.error('❌ Registration failed: Email already registered');
+        console.log('Debug - Existing email found:', existingUserByEmail.email);
+        return false;
+      }
+
+      if (existingUserByUsername) {
+        console.error('❌ Registration failed: Username already taken');
+        console.log('Debug - Existing username found:', existingUserByUsername.username);
+        return false;
+      }
+
+      // Hash password before storing
+      console.log('🔍 Hashing password...');
+      const hashedPassword = await SecurityUtils.hashData(userData.password);
+      console.log('🔍 Password hashed successfully');
 
       // Create new user
       const newUser: User = {
@@ -199,11 +254,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createdAt: new Date().toISOString(),
       };
 
-      // Save to users list
-      existingUsers.push(newUser);
+      // Save to users list with hashed password
+      const userWithHashedPassword = { ...newUser, hashedPassword };
+      existingUsers.push(userWithHashedPassword);
       localStorage.setItem('users', JSON.stringify(existingUsers));
       
-      // Set as current user
+      // Set as current user (without hashed password)
       setUser(newUser);
       localStorage.setItem('user', JSON.stringify(newUser));
 
@@ -211,6 +267,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } catch (error) {
       console.error('❌ Registration error:', error);
+      console.log('Debug - Error details:', error);
       return false;
     }
   };
@@ -258,6 +315,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     localStorage.removeItem('user');
     console.log('✅ Logout successful');
+  };
+
+  // Utility function to create demo users for testing
+  const createDemoUsers = () => {
+    const demoUsers = [
+      {
+        id: 'demo-user-1',
+        email: 'john@example.com',
+        username: 'john_doe',
+        fullName: 'John Doe',
+        profilePicture: '',
+        coverImage: '',
+        bio: 'Software Developer at Tech Corp',
+        location: 'San Francisco',
+        website: 'https://johndoe.dev',
+        connections: 150,
+        posts: 25,
+        createdAt: '2024-01-15T10:00:00Z',
+        hashedPassword: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8' // "password"
+      },
+      {
+        id: 'demo-user-2',
+        email: 'jane@example.com',
+        username: 'jane_smith',
+        fullName: 'Jane Smith',
+        profilePicture: '',
+        coverImage: '',
+        bio: 'Product Manager',
+        location: 'New York',
+        website: '',
+        connections: 89,
+        posts: 12,
+        createdAt: '2024-01-20T14:30:00Z',
+        hashedPassword: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8' // "password"
+      }
+    ];
+
+    localStorage.setItem('users', JSON.stringify(demoUsers));
+    console.log('✅ Demo users created');
+  };
+
+  // Utility function to clear all users (for testing)
+  const clearAllUsers = () => {
+    localStorage.removeItem('users');
+    localStorage.removeItem('user');
+    setUser(null);
+    console.log('✅ All users cleared');
   };
 
   const value: AuthContextType = {

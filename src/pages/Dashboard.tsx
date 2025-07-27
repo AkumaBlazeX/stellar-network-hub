@@ -16,16 +16,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user) {
-    loadPosts();
+      loadPosts();
     }
   }, [user]);
 
   const loadPosts = async () => {
     try {
       setIsLoading(true);
-      console.log('🔄 Loading posts...');
       const fetchedPosts = await postsAPI.getPosts();
-      console.log('📝 Fetched posts:', fetchedPosts);
       setPosts(fetchedPosts);
     } catch (error) {
       console.error('❌ Error loading posts:', error);
@@ -42,7 +40,6 @@ export default function Dashboard() {
     if (user) {
       try {
         await updateProfile({ posts: user.posts + 1 });
-        console.log('✅ Post count updated successfully');
       } catch (error) {
         console.error('❌ Error updating post count:', error);
       }
@@ -171,17 +168,15 @@ export default function Dashboard() {
                       {user.fullName.charAt(0).toUpperCase()}
                     </span>
                   </div>
+                  {/* Create Post Button */}
                   <Button 
-                    variant="outline" 
-                    className="flex-1 justify-start text-muted-foreground hover:bg-muted/50"
                     onClick={() => setShowCreatePost(true)}
+                    className="w-full bg-gradient-primary text-primary-foreground hover:bg-gradient-primary/90"
                   >
-                    What's on your mind, {user.fullName.split(' ')[0]}?
-                  </Button>
-                  <Button onClick={() => setShowCreatePost(true)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Post
+                    Create Post
                   </Button>
+                  
                 </div>
               </CardContent>
             </Card>

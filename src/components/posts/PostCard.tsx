@@ -271,16 +271,28 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
         {post.images && post.images.length > 0 && (
           <div className="mb-4 grid gap-2 rounded-lg overflow-hidden">
             {post.images.map((image, index) => (
-              <img
-                key={index}
-                src={image}
-                alt={`Post image ${index + 1}`}
-                className="w-full h-auto max-h-96 object-cover rounded-lg"
-                onError={(e) => {
-                  // Hide broken images
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+              <div key={index} className="relative">
+                <img
+                  src={image}
+                  alt={`Post image ${index + 1}`}
+                  className="w-full h-auto max-h-96 object-cover rounded-lg"
+                  onError={(e) => {
+                    // Show fallback instead of hiding
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling;
+                    if (fallback) {
+                      fallback.classList.remove('hidden');
+                    }
+                  }}
+                />
+                <div className="hidden w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <div className="text-center text-gray-500">
+                    <div className="text-2xl mb-2">📷</div>
+                    <div className="text-sm">Image not available</div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         )}

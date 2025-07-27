@@ -10,7 +10,15 @@ const getAuthToken = (): string | null => {
 };
 
 // Generic API call function
-const apiCall = async (endpoint: string, options: RequestInit = {}): Promise<any> => {
+interface ApiResponse {
+  data?: unknown;
+  posts?: unknown;
+  success?: boolean;
+  deleted?: boolean;
+  [key: string]: unknown;
+}
+
+const apiCall = async (endpoint: string, options: RequestInit = {}): Promise<ApiResponse> => {
   const url = `${API_BASE_URL}${endpoint}`;
   const token = getAuthToken();
   
@@ -140,7 +148,7 @@ export const userAPI = {
 // Posts API calls
 export const postsAPI = {
   // Get posts feed
-  getPosts: async (limit: number = 10, offset: number = 0): Promise<Post[]> => {
+  getPosts: async (limit: number = 50, offset: number = 0): Promise<Post[]> => {
     try {
       console.log('🌐 Attempting to fetch posts from AWS API...');
       const response = await apiCall(`/posts?limit=${limit}&offset=${offset}`);
@@ -160,21 +168,21 @@ export const postsAPI = {
         }
       }
       
-      return posts.map((post: any) => ({
-        id: post.postId || post.id,
-        authorId: post.authorId,
+      return posts.map((post: unknown) => ({
+        id: (post as any).postId || (post as any).id,
+        authorId: (post as any).authorId,
         author: {
-          id: post.authorId,
-          username: post.authorName ? post.authorName.split(' ')[0].toLowerCase() : (currentUser?.username || 'user'),
-          fullName: post.authorName || (currentUser?.fullName || 'User'),
-          profilePicture: post.authorPicture || (currentUser?.profilePicture || ''),
+          id: (post as any).authorId,
+          username: (post as any).authorName ? (post as any).authorName.split(' ')[0].toLowerCase() : (currentUser?.username || 'user'),
+          fullName: (post as any).authorName || (currentUser?.fullName || 'User'),
+          profilePicture: (post as any).authorPicture || (currentUser?.profilePicture || ''),
         },
-        content: post.content,
-        images: post.imageUrl && post.imageUrl !== 'https://example.com/test.jpg' && post.imageUrl !== 'null' ? [post.imageUrl] : [],
-        createdAt: post.createdAt,
-        updatedAt: post.updatedAt,
-        likes: post.likes || 0,
-        comments: post.comments || 0,
+        content: (post as any).content,
+        images: (post as any).imageUrl && (post as any).imageUrl !== 'null' && (post as any).imageUrl !== '' ? [(post as any).imageUrl] : [],
+        createdAt: (post as any).createdAt,
+        updatedAt: (post as any).updatedAt,
+        likes: (post as any).likes || 0,
+        comments: (post as any).comments || 0,
         shares: 0,
         isLiked: false,
       }));
@@ -256,6 +264,7 @@ export const postsAPI = {
         authorId: postData.userId, // Frontend sends userId, backend expects authorId
         content: postData.content,
         imageUrl: postData.imageUrl || (postData.imageUrls && postData.imageUrls.length > 0 ? postData.imageUrls[0] : undefined),
+        imageUrls: postData.imageUrls || [], // Send all images
         authorName: currentUser?.fullName || 'User',
         authorPicture: currentUser?.profilePicture || '',
       };
@@ -270,8 +279,10 @@ export const postsAPI = {
       
       // Use uploaded images if available, otherwise use backend response
       const images = postData.imageUrls && postData.imageUrls.length > 0 
-        ? postData.imageUrls.filter(url => url && url !== 'https://example.com/test.jpg' && url !== 'null')
-        : (post.imageUrl && post.imageUrl !== 'https://example.com/test.jpg' && post.imageUrl !== 'null' ? [post.imageUrl] : []);
+        ? postData.imageUrls.filter(url => url && url !== 'null' && url !== '')
+        : (post.imageUrls && post.imageUrls.length > 0 
+            ? post.imageUrls.filter(url => url && url !== 'null' && url !== '')
+            : (post.imageUrl && post.imageUrl !== 'null' && post.imageUrl !== '' ? [post.imageUrl] : []));
       
       return {
         id: post.postId || post.id,
@@ -308,8 +319,8 @@ export const postsAPI = {
       
       // Use uploaded images if available
       const images = postData.imageUrls && postData.imageUrls.length > 0 
-        ? postData.imageUrls.filter(url => url && url !== 'https://example.com/test.jpg' && url !== 'null')
-        : (postData.imageUrl && postData.imageUrl !== 'https://example.com/test.jpg' && postData.imageUrl !== 'null' ? [postData.imageUrl] : []);
+        ? postData.imageUrls.filter(url => url && url !== 'null' && url !== '')
+        : (postData.imageUrl && postData.imageUrl !== 'null' && postData.imageUrl !== '' ? [postData.imageUrl] : []);
       
       const fallbackPost: Post = {
         id: `post-${Date.now()}`,
@@ -356,7 +367,7 @@ export const postsAPI = {
           profilePicture: post.authorPicture || '',
         },
         content: post.content,
-        images: post.imageUrl && post.imageUrl !== 'https://example.com/test.jpg' && post.imageUrl !== 'null' ? [post.imageUrl] : [],
+        images: post.imageUrl && post.imageUrl !== 'null' ? [post.imageUrl] : [],
         createdAt: post.createdAt,
         updatedAt: post.updatedAt,
         likes: post.likes || 0,
@@ -459,73 +470,83 @@ export const connectionsAPI = {
   },
 };
 
+// Helper function to compress images
+const compressImage = (file: File, maxWidth: number = 1920, quality: number = 0.8): Promise<File> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    const img = new Image();
+    
+    img.onload = () => {
+      // Calculate new dimensions
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Draw and compress
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: file.type,
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file); // Fallback to original
+          }
+        },
+        file.type,
+        quality
+      );
+    };
+    
+    img.src = URL.createObjectURL(file);
+  });
+};
+
 // Upload API calls
 export const uploadAPI = {
-  // Test upload function to verify S3 connection
-  testUpload: async (): Promise<boolean> => {
-    try {
-      console.log('🧪 Testing upload connection...');
-      console.log('🧪 API Base URL:', API_BASE_URL);
-      
-      // Test with a simple image
-      const testData = {
-        fileName: 'test-image.jpg',
-        fileType: 'image/jpeg',
-        fileContent: Buffer.from('fake-image-data').toString('base64'),
-        userId: 'test-user',
-      };
-      
-      console.log('🧪 Test data:', testData);
-      
-      const testResponse = await apiCall('/upload', {
-        method: 'POST',
-        body: JSON.stringify(testData),
-      });
-      
-      console.log('✅ Upload test successful:', testResponse);
-      console.log('✅ Response data:', testResponse);
-      
-      // Check if we got a valid fileUrl
-      if (testResponse.fileUrl) {
-        console.log('✅ File URL received:', testResponse.fileUrl);
-        return true;
-      } else {
-        console.error('❌ No fileUrl in response:', testResponse);
-        return false;
-      }
-    } catch (error) {
-      console.error('❌ Upload test failed:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        status: error.status,
-        response: error.response
-      });
-      return false;
-    }
-  },
-
-  // Simple test without API call
-  simpleTest: async (): Promise<boolean> => {
-    try {
-      console.log('🧪 Simple test - checking API endpoint...');
-      const response = await fetch(`${API_BASE_URL}/upload`, {
-        method: 'OPTIONS',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      console.log('✅ Simple test response:', response.status, response.statusText);
-      return response.ok;
-    } catch (error) {
-      console.error('❌ Simple test failed:', error);
-      return false;
-    }
-  },
-
   // Upload file
   uploadFile: async (file: File, userId: string): Promise<{ fileUrl: string; fileName: string }> => {
     try {
       console.log('🌐 Uploading file via AWS API...');
+      console.log('📁 File:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+      
+      // Check file size (5MB limit to match backend)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      let fileToUpload = file;
+      
+      if (file.size > maxSize) {
+        console.log('📦 File is large, attempting compression...');
+        try {
+          fileToUpload = await compressImage(file);
+          console.log('✅ Compression result:', {
+            originalSize: file.size,
+            compressedSize: fileToUpload.size,
+            reduction: `${((1 - fileToUpload.size / file.size) * 100).toFixed(1)}%`
+          });
+          
+          if (fileToUpload.size > maxSize) {
+            throw new Error(`File too large even after compression: ${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB (max: 5MB)`);
+          }
+        } catch (compressionError) {
+          throw new Error(`File too large: ${(file.size / 1024 / 1024).toFixed(2)}MB (max: 5MB)`);
+        }
+      }
+      
+      // Check file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(fileToUpload.type)) {
+        throw new Error(`Invalid file type: ${fileToUpload.type}`);
+      }
+      
       // Convert file to base64 for API Gateway
       const base64 = await new Promise<string>((resolve) => {
         const reader = new FileReader();
@@ -533,42 +554,66 @@ export const uploadAPI = {
           const result = reader.result as string;
           resolve(result.split(',')[1]); // Remove data:image/jpeg;base64, prefix
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(fileToUpload);
       });
 
+      const uploadData = {
+        fileName: fileToUpload.name,
+        fileType: fileToUpload.type,
+        fileContent: base64,
+        userId: userId,
+      };
+
+      console.log('📤 Sending to AWS API...');
       const response = await apiCall('/upload', {
         method: 'POST',
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-          fileContent: base64,
-          userId: userId,
-        }),
+        body: JSON.stringify(uploadData),
       });
-      console.log('✅ Upload response:', response);
-      console.log('✅ Upload response data:', response.data);
-      console.log('✅ Upload response type:', typeof response.data);
+      
+      console.log('✅ AWS API Response:', response);
       
       // Handle different response structures
       const result = response.data || response;
-      console.log('✅ Final upload result:', result);
       
       // Ensure we have the required fields
       if (!result.fileUrl) {
-        console.error('❌ Upload response missing fileUrl:', result);
-        throw new Error('Upload response missing fileUrl');
+        console.error('❌ AWS API response missing fileUrl:', result);
+        throw new Error('AWS API response missing fileUrl');
       }
       
+      console.log('🎉 Upload successful:', result.fileUrl);
       return result;
     } catch (error) {
-      console.error('❌ Error uploading file:', error);
-      console.log('🔄 Using mock upload');
-              // Return mock upload result
-        console.log('🔄 Using mock upload fallback');
-        return {
-          fileUrl: `https://picsum.photos/400/300?random=${Date.now()}`,
-          fileName: file.name,
-        };
+      console.error('❌ AWS API upload failed:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        type: typeof error,
+        error: error
+      });
+      
+      // Check if it's a network/API issue vs file issue
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          console.log('🌐 Network/API issue detected - using fallback');
+        } else if (error.message.includes('File too large')) {
+          console.log('📁 File size issue - using fallback');
+        } else {
+          console.log('❓ Unknown error - using fallback');
+        }
+      }
+      
+      // Return a simple SVG placeholder for development
+      const svgPlaceholder = `data:image/svg+xml;base64,${btoa(`
+        <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+          <rect width="400" height="300" fill="#f3f4f6"/>
+          <text x="200" y="150" font-family="Arial, sans-serif" font-size="16" fill="#6b7280" text-anchor="middle" dy=".3em">Image Upload Failed</text>
+        </svg>
+      `)}`;
+      return {
+        fileUrl: svgPlaceholder,
+        fileName: file.name,
+      };
     }
   },
 };
