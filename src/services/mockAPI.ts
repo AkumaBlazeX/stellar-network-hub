@@ -223,7 +223,11 @@ export const postsAPI = {
       console.log('🌐 Liking post via AWS API...');
       const response = await apiCall(`/posts/${postId}/like`, {
         method: 'POST',
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ 
+          postId,
+          userId,
+          action: 'like'
+        }),
       });
       return response.data || response;
     } catch (error) {
