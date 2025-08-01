@@ -1,75 +1,42 @@
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              import { useState } from 'react';
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useCognitoAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleSignIn = () => {
     setIsLoading(true);
-    setError(''); // Clear previous errors
-
-    // Client-side validation
-    if (!email.trim()) {
-      setError('Please enter your email address');
-      setIsLoading(false);
-      return;
-    }
-
-    if (!password.trim()) {
-      setError('Please enter your password');
-      setIsLoading(false);
-      return;
-    }
-
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const success = await login(email, password);
-      if (success) {
-        toast({
-          title: "Welcome back!",
-          description: "Successfully signed in to your account.",
-        });
-        navigate('/dashboard');
-      } else {
-        setError('Invalid email or password. Please check your credentials and try again.');
-        toast({
-          title: "Login failed",
-          description: "Invalid email or password. Please check your credentials and try again.",
-          variant: "destructive",
-        });
-      }
+      login();
+      toast({
+        title: "Redirecting to sign in",
+        description: "You'll be redirected to AWS Cognito for secure authentication.",
+      });
     } catch (error) {
       console.error('Login error:', error);
-      setError('An error occurred during login. Please try again.');
       toast({
         title: "Login error",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -100,90 +67,35 @@ export default function Login() {
         {/* Login Form */}
         <Card className="bg-gradient-card border-0 shadow-strong">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-xl">Sign In</CardTitle>
+            <CardTitle className="text-xl">Sign In with AWS Cognito</CardTitle>
             <CardDescription>
-              Enter your credentials to access your account
+              Secure authentication powered by AWS Cognito
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="john@example.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setError(''); // Clear error when user types
-                  }}
-                  required
-                  className="bg-background/50"
-                />
-              </div>
-              
-              {error && (
-                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                  {error}
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setError(''); // Clear error when user types
-                    }}
-                    required
-                    className="bg-background/50 pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                    <span className="sr-only">
-                      {showPassword ? 'Hide password' : 'Show password'}
-                    </span>
-                  </Button>
-                </div>
-              </div>
-
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
               <Button 
-                type="submit" 
+                onClick={handleSignIn}
                 className="w-full" 
                 disabled={isLoading}
+                size="lg"
               >
-                {isLoading ? 'Signing in...' : 'Sign In'}
+                {isLoading ? 'Redirecting...' : 'Sign In with AWS Cognito'}
               </Button>
-            </form>
+            </div>
 
-            <div className="mt-6">
+            <div className="text-center">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Cognito Authentication</span>
+                  <span className="bg-card px-2 text-muted-foreground">Secure Authentication</span>
                 </div>
               </div>
               <div className="mt-4 p-3 bg-muted/30 rounded-md text-sm">
                 <p className="text-center text-muted-foreground">
-                  Click "Sign In" to be redirected to AWS Cognito for secure authentication
+                  You'll be redirected to AWS Cognito's secure hosted UI for authentication
                 </p>
               </div>
             </div>
@@ -197,78 +109,6 @@ export default function Login() {
                 Sign up
               </Link>
             </div>
-
-            {/* Test Section - Only show in development */}
-            {import.meta.env.DEV && (
-              <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                <h3 className="text-sm font-medium mb-2">🧪 Test Accounts (Development Only)</h3>
-                <div className="text-xs space-y-1 text-muted-foreground">
-                  <div><strong>Email:</strong> john@example.com | <strong>Password:</strong> password</div>
-                  <div><strong>Email:</strong> jane@example.com | <strong>Password:</strong> password</div>
-                  <div className="mt-2 text-xs">
-                    <button 
-                      onClick={() => {
-                        // Create demo users
-                        const demoUsers = [
-                          {
-                            id: 'demo-user-1',
-                            email: 'john@example.com',
-                            username: 'john_doe',
-                            fullName: 'John Doe',
-                            profilePicture: '',
-                            coverImage: '',
-                            bio: 'Software Developer at Tech Corp',
-                            location: 'San Francisco',
-                            website: 'https://johndoe.dev',
-                            connections: 150,
-                            posts: 25,
-                            createdAt: '2024-01-15T10:00:00Z',
-                            hashedPassword: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8'
-                          },
-                          {
-                            id: 'demo-user-2',
-                            email: 'jane@example.com',
-                            username: 'jane_smith',
-                            fullName: 'Jane Smith',
-                            profilePicture: '',
-                            coverImage: '',
-                            bio: 'Product Manager',
-                            location: 'New York',
-                            website: '',
-                            connections: 89,
-                            posts: 12,
-                            createdAt: '2024-01-20T14:30:00Z',
-                            hashedPassword: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8'
-                          }
-                        ];
-                        localStorage.setItem('users', JSON.stringify(demoUsers));
-                        toast({
-                          title: "Demo users created",
-                          description: "You can now test with john@example.com or jane@example.com (password: password)",
-                        });
-                      }}
-                      className="text-primary hover:underline"
-                    >
-                      Create Demo Users
-                    </button>
-                    {' | '}
-                    <button 
-                      onClick={() => {
-                        localStorage.removeItem('users');
-                        localStorage.removeItem('user');
-                        toast({
-                          title: "Users cleared",
-                          description: "All users have been removed. You'll need to register new accounts.",
-                        });
-                      }}
-                      className="text-destructive hover:underline"
-                    >
-                      Clear All Users
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 

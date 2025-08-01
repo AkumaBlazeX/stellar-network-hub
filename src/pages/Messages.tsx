@@ -17,8 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { useAuth } from '@/contexts/AuthContext';
-import { connectionsAPI } from '@/services/mockAPI';
+import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface Conversation {
@@ -48,7 +47,7 @@ interface Message {
 }
 
 export default function Messages() {
-  const { user } = useAuth();
+  const { user } = useCognitoAuth();
   const { toast } = useToast();
   const [selectedConversation, setSelectedConversation] = useState<string | null>('1');
   const [newMessage, setNewMessage] = useState('');

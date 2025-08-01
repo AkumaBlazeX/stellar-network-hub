@@ -2,15 +2,15 @@ import { useState, useEffect } from 'react';
 import { Plus, TrendingUp, Users, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext';
-import { postsAPI } from '@/services/mockAPI';
+import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
+import { postAPI } from '@/services/cognitoAPI';
 import { Post } from '@/types';
 import { PostCard } from '@/components/posts/PostCard';
 import { CreatePostModal } from '@/components/posts/CreatePostModal';
 import { PeopleYouMayKnow } from '@/components/PeopleYouMayKnow';
 
 export default function Dashboard() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile } = useCognitoAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreatePost, setShowCreatePost] = useState(false);
@@ -24,7 +24,7 @@ export default function Dashboard() {
   const loadPosts = async () => {
     try {
       setIsLoading(true);
-      const fetchedPosts = await postsAPI.getPosts();
+      const fetchedPosts = await postAPI.getPosts('');
       setPosts(fetchedPosts);
     } catch (error) {
       console.error('❌ Error loading posts:', error);

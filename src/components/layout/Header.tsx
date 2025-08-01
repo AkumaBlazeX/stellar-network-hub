@@ -21,11 +21,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export function Header() {
-  const { user, logout } = useAuth();
+  const { user, logout } = useCognitoAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');

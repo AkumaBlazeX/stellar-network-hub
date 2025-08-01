@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface SearchResult {
@@ -21,7 +21,7 @@ interface SearchResult {
 export default function Search() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
-  const { user } = useAuth();
+  const { user } = useCognitoAuth();
   const { toast } = useToast();
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);

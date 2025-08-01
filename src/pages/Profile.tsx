@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/AuthContext';
-import { userAPI, uploadAPI } from '@/services/mockAPI';
+import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
+import { uploadAPI } from '@/services/cognitoAPI';
 import { useToast } from '@/hooks/use-toast';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 
 export default function Profile() {
-  const { user, updateProfile, isLoading: authLoading } = useAuth();
+  const { user, updateProfile, isLoading: authLoading } = useCognitoAuth();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

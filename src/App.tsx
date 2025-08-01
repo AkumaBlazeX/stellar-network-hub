@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { CognitoAuthProvider } from "@/contexts/CognitoAuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Layout } from "@/components/layout/Layout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -28,7 +28,7 @@ const App = () => (
   // <ErrorBoundaryWrapper>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthProvider>
+        <CognitoAuthProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -86,7 +86,7 @@ const App = () => (
               </Layout>
             </BrowserRouter>
           </TooltipProvider>
-        </AuthProvider>
+        </CognitoAuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   // </ErrorBoundaryWrapper>

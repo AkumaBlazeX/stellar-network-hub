@@ -25,7 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface Notification {
@@ -44,7 +44,7 @@ interface Notification {
 }
 
 export default function Notifications() {
-  const { user } = useAuth();
+  const { user } = useCognitoAuth();
   const { toast } = useToast();
   const [selectedTab, setSelectedTab] = useState('all');
 

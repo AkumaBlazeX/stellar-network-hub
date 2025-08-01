@@ -1,12 +1,12 @@
 import { Header } from './Header';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useCognitoAuth();
 
   if (!isAuthenticated) {
     return <>{children}</>;

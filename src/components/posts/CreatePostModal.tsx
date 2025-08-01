@@ -9,9 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { postsAPI, uploadAPI } from '@/services/mockAPI';
+import { postAPI, uploadAPI } from '@/services/cognitoAPI';
 import { Post } from '@/types';
 
 interface CreatePostModalProps {
@@ -21,7 +21,7 @@ interface CreatePostModalProps {
 }
 
 export function CreatePostModal({ open, onOpenChange, onPostCreated }: CreatePostModalProps) {
-  const { user } = useAuth();
+  const { user } = useCognitoAuth();
   const { toast } = useToast();
   const [content, setContent] = useState('');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -110,7 +110,7 @@ export function CreatePostModal({ open, onOpenChange, onPostCreated }: CreatePos
 
       // Create the post
       console.log('📝 Creating post...');
-      const newPost = await postsAPI.createPost({
+      const newPost = await postAPI.createPost({
         userId: user.id,
         content,
         imageUrls: imageUrls,

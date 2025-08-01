@@ -21,13 +21,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/hooks/use-toast';
-import { userAPI } from '@/services/mockAPI';
 
 export default function Settings() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile } = useCognitoAuth();
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   
@@ -70,8 +69,8 @@ export default function Settings() {
     setIsLoading(true);
     try {
       if (user) {
-        const updatedUser = await userAPI.updateUser(user.id, profileData);
-        if (updatedUser) {
+        const success = await updateProfile(profileData);
+        if (success) {
         toast({
           title: "Profile updated",
           description: "Your profile has been successfully updated.",

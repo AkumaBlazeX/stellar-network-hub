@@ -11,9 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { uploadAPI } from '@/services/mockAPI';
+import { uploadAPI } from '@/services/cognitoAPI';
 
 interface EditProfileModalProps {
   open: boolean;
@@ -21,7 +21,7 @@ interface EditProfileModalProps {
 }
 
 export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile } = useCognitoAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({

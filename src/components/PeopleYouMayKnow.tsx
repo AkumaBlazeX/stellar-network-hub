@@ -3,9 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { connectionsAPI } from '@/services/mockAPI';
 import { User } from '@/types';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
 import { toast } from '@/hooks/use-toast';
 
 interface PeopleYouMayKnowProps {
@@ -16,7 +15,7 @@ export function PeopleYouMayKnow({ className }: PeopleYouMayKnowProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState<Set<string>>(new Set());
-  const { user } = useAuth();
+  const { user } = useCognitoAuth();
 
   useEffect(() => {
     if (user) {
@@ -27,7 +26,8 @@ export function PeopleYouMayKnow({ className }: PeopleYouMayKnowProps) {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const fetchedUsers = await connectionsAPI.getUsers(user?.id || '', 5);
+      // Mock users for now - replace with real API
+      const fetchedUsers = [];
       setUsers(fetchedUsers);
     } catch (error) {
       console.error('❌ Error loading users:', error);
@@ -45,7 +45,8 @@ export function PeopleYouMayKnow({ className }: PeopleYouMayKnowProps) {
     if (!user) return;
 
     try {
-      const success = await connectionsAPI.createConnection(user.id, userId, 'follow');
+      // Mock connection for now
+      const success = true;
       
       if (success) {
         setFollowing(prev => new Set(prev).add(userId));
@@ -81,7 +82,8 @@ export function PeopleYouMayKnow({ className }: PeopleYouMayKnowProps) {
     if (!user) return;
 
     try {
-      const success = await connectionsAPI.createConnection(user.id, userId, 'unfollow');
+      // Mock disconnection for now
+      const success = true;
       
       if (success) {
         setFollowing(prev => {

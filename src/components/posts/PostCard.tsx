@@ -21,9 +21,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { postsAPI } from '@/services/mockAPI';
+import { postAPI } from '@/services/cognitoAPI';
 import { Post } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -34,7 +34,7 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
-  const { user } = useAuth();
+  const { user } = useCognitoAuth();
   const { toast } = useToast();
   const [isLiking, setIsLiking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -49,7 +49,7 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
     
     setIsLiking(true);
     try {
-      const result = await postsAPI.likePost(post.id, user?.id || '');
+      const result = await postAPI.likePost(post.id, 'like', '');
         const updatedPost = {
           ...post,
           isLiked: !post.isLiked,
@@ -79,7 +79,7 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
     setIsDeleting(true);
     try {
       console.log('🗑️ Attempting to delete post:', post.id);
-      const success = await postsAPI.deletePost(post.id, user?.id || '');
+      await postAPI.deletePost(post.id, '');
       console.log('🗑️ Delete result:', success);
       
       if (success) {
@@ -141,7 +141,7 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
 
     setIsUpdating(true);
     try {
-      const updatedPost = await postsAPI.updatePost(post.id, {
+      const updatedPost = await postAPI.updatePost(post.id, editContent.trim(), '');
         content: editContent.trim(),
         imageUrl: post.images?.[0] || undefined,
       });
