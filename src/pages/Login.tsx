@@ -1,4 +1,4 @@
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,9 @@ import { useCognitoAuth } from '@/contexts/CognitoAuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
   const { login, isAuthenticated } = useCognitoAuth();
@@ -22,19 +25,29 @@ export default function Login() {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleSignIn = () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       login();
       toast({
-        title: "Redirecting to sign in",
-        description: "You'll be redirected to AWS Cognito for secure authentication.",
+        title: "Signing in...",
+        description: "Please wait while we authenticate you.",
       });
     } catch (error) {
       console.error('Login error:', error);
       toast({
         title: "Login error",
-        description: "Something went wrong. Please try again.",
+        description: "Invalid credentials. Please try again.",
         variant: "destructive",
       });
       setIsLoading(false);
@@ -67,38 +80,63 @@ export default function Login() {
         {/* Login Form */}
         <Card className="bg-gradient-card border-0 shadow-strong">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-xl">Sign In with AWS Cognito</CardTitle>
+            <CardTitle className="text-xl">Sign In</CardTitle>
             <CardDescription>
-              Secure authentication powered by AWS Cognito
+              Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               <Button 
-                onClick={handleSignIn}
+                type="submit"
                 className="w-full" 
                 disabled={isLoading}
                 size="lg"
               >
-                {isLoading ? 'Redirecting...' : 'Sign In with AWS Cognito'}
+                {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
-            </div>
-
-            <div className="text-center">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Secure Authentication</span>
-                </div>
-              </div>
-              <div className="mt-4 p-3 bg-muted/30 rounded-md text-sm">
-                <p className="text-center text-muted-foreground">
-                  You'll be redirected to AWS Cognito's secure hosted UI for authentication
-                </p>
-              </div>
-            </div>
+            </form>
 
             <div className="mt-6 text-center text-sm">
               <span className="text-muted-foreground">Don't have an account? </span>
