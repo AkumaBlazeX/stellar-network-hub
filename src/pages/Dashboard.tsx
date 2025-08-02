@@ -10,7 +10,7 @@ import { CreatePostModal } from '@/components/posts/CreatePostModal';
 import { PeopleYouMayKnow } from '@/components/PeopleYouMayKnow';
 
 export default function Dashboard() {
-  const { user, updateProfile } = useCognitoAuth();
+  const { user, updateProfile, getAuthToken } = useCognitoAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreatePost, setShowCreatePost] = useState(false);
@@ -24,7 +24,7 @@ export default function Dashboard() {
   const loadPosts = async () => {
     try {
       setIsLoading(true);
-      const fetchedPosts = await postAPI.getPosts('');
+      const fetchedPosts = await postAPI.getPosts(getAuthToken());
       setPosts(fetchedPosts);
     } catch (error) {
       console.error('❌ Error loading posts:', error);

@@ -34,7 +34,7 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
-  const { user } = useCognitoAuth();
+  const { user, getAuthToken } = useCognitoAuth();
   const { toast } = useToast();
   const [isLiking, setIsLiking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -49,13 +49,13 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
     
     setIsLiking(true);
     try {
-      const result = await postAPI.likePost(post.id, 'like', '');
-        const updatedPost = {
-          ...post,
-          isLiked: !post.isLiked,
+      const result = await postAPI.likePost(post.id, 'like', getAuthToken());
+      const updatedPost = {
+        ...post,
+        isLiked: !post.isLiked,
         likes: result.likes,
-        };
-        onUpdate(updatedPost);
+      };
+      onUpdate(updatedPost);
     } catch (error) {
       toast({
         title: "Error",
@@ -79,18 +79,12 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
     setIsDeleting(true);
     try {
       console.log('🗑️ Attempting to delete post:', post.id);
-      await postAPI.deletePost(post.id, '');
-      console.log('🗑️ Delete result:', success);
-      
-      if (success) {
-        onDelete(post.id);
-        toast({
-          title: "Post deleted",
-          description: "Your post has been successfully deleted.",
-        });
-      } else {
-        throw new Error('Delete failed');
-      }
+      await postAPI.deletePost(post.id, getAuthToken());
+      onDelete(post.id);
+      toast({
+        title: "Post deleted",
+        description: "Your post has been successfully deleted.",
+      });
     } catch (error) {
       console.error('❌ Delete error:', error);
       toast({
@@ -141,10 +135,7 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
 
     setIsUpdating(true);
     try {
-      const updatedPost = await postAPI.updatePost(post.id, editContent.trim(), '');
-        content: editContent.trim(),
-        imageUrl: post.images?.[0] || undefined,
-      });
+      const updatedPost = await postAPI.updatePost(post.id, editContent.trim(), getAuthToken());
       onUpdate(updatedPost);
       setIsEditing(false);
       toast({

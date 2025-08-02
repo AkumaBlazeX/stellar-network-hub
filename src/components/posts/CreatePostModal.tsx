@@ -21,7 +21,7 @@ interface CreatePostModalProps {
 }
 
 export function CreatePostModal({ open, onOpenChange, onPostCreated }: CreatePostModalProps) {
-  const { user } = useCognitoAuth();
+  const { user, getAuthToken } = useCognitoAuth();
   const { toast } = useToast();
   const [content, setContent] = useState('');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -71,7 +71,7 @@ export function CreatePostModal({ open, onOpenChange, onPostCreated }: CreatePos
           console.log(`📤 Uploading image ${index + 1}: ${file.name}`);
           
           try {
-            const result = await uploadAPI.uploadFile(file, user.id);
+            const result = await uploadAPI.uploadFile(file, getAuthToken());
             console.log(`✅ Image ${index + 1} uploaded: ${result.fileUrl.substring(0, 50)}...`);
             
             // Check if we got a real URL or the fallback SVG
@@ -111,10 +111,10 @@ export function CreatePostModal({ open, onOpenChange, onPostCreated }: CreatePos
       // Create the post
       console.log('📝 Creating post...');
       const newPost = await postAPI.createPost({
-        userId: user.id,
+        authorId: user.id,
         content,
         imageUrls: imageUrls,
-      });
+      }, getAuthToken());
       console.log('✅ Post created successfully');
       onPostCreated(newPost);
       

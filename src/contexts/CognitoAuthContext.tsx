@@ -8,6 +8,7 @@ interface CognitoAuthContextType {
   register: () => void;
   logout: () => void;
   updateProfile: (userData: Partial<User>) => Promise<boolean>;
+  getAuthToken: () => string;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -60,23 +61,10 @@ export const CognitoAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       if (user && (auth.user as any)?.access_token) {
         // Update user profile via API
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(auth.user as any).access_token}`,
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            ...userData
-          }),
-        });
-
-        if (response.ok) {
-          const updatedUser = { ...user, ...userData };
-          setUser(updatedUser);
-          return true;
-        }
+        const { userAPI } = await import('@/services/cognitoAPI');
+        const updatedUser = await userAPI.updateUser(user.id, userData, (auth.user as any).access_token);
+        setUser(updatedUser);
+        return true;
       }
       return false;
     } catch (error) {
@@ -85,12 +73,17 @@ export const CognitoAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
+  const getAuthToken = (): string => {
+    return (auth.user as any)?.access_token || '';
+  };
+
   const value: CognitoAuthContextType = {
     user,
     login,
     register,
     logout,
     updateProfile,
+    getAuthToken,
     isAuthenticated: !!auth.user && !auth.isLoading,
     isLoading: auth.isLoading,
   };
