@@ -48,8 +48,8 @@ export const CognitoAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const register = () => {
-    // Redirect to Cognito hosted UI for registration
-    const registerUrl = `https://professionalnet.auth.${import.meta.env.VITE_AWS_REGION}.amazoncognito.com/signup?client_id=${import.meta.env.VITE_COGNITO_CLIENT_ID}&response_type=code&scope=email+openid+phone+profile&redirect_uri=${encodeURIComponent(window.location.origin + '/login')}`;
+    // Redirect to Cognito hosted UI for registration  
+    const registerUrl = `https://professionalnet.auth.${import.meta.env.VITE_AWS_REGION}.amazoncognito.com/signup?client_id=${import.meta.env.VITE_COGNITO_CLIENT_ID}&response_type=code&scope=email+openid+phone+profile&redirect_uri=${encodeURIComponent(window.location.origin + '/dashboard')}`;
     window.location.href = registerUrl;
   };
 

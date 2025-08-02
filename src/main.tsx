@@ -7,7 +7,7 @@ import { AuthProvider } from 'react-oidc-context'
 const cognitoAuthConfig = {
   authority: `https://cognito-idp.${import.meta.env.VITE_AWS_REGION}.amazonaws.com/${import.meta.env.VITE_COGNITO_USER_POOL_ID}`,
   client_id: import.meta.env.VITE_COGNITO_CLIENT_ID,
-  redirect_uri: `${window.location.origin}/login`,
+  redirect_uri: `${window.location.origin}/dashboard`,
   response_type: "code",
   scope: "email openid phone profile",
   automaticSilentRenew: true,

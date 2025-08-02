@@ -13,6 +13,9 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import PostDetails from "./pages/PostDetails";
+import Company from "./pages/Company";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
@@ -39,6 +42,7 @@ const App = () => (
                   <Route path="/" element={<Landing />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
                   
                   {/* Protected Routes */}
                   <Route path="/dashboard" element={
@@ -69,6 +73,16 @@ const App = () => (
                   <Route path="/search" element={
                     <ProtectedRoute>
                       <Search />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/post/:id" element={
+                    <ProtectedRoute>
+                      <PostDetails />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/company/:id" element={
+                    <ProtectedRoute>
+                      <Company />
                     </ProtectedRoute>
                   } />
                   <Route path="/users" element={

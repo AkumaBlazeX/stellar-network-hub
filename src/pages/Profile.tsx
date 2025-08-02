@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Camera, MapPin, Globe, Calendar, Edit2, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 
 export default function Profile() {
+  const navigate = useNavigate();
   const { user, updateProfile, isLoading: authLoading } = useCognitoAuth();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -45,7 +47,7 @@ export default function Profile() {
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Profile Not Found</h2>
           <p className="text-muted-foreground mb-4">Please log in to view your profile.</p>
-          <Button onClick={() => window.location.href = '/login'}>
+          <Button onClick={() => navigate('/login')}>
             Go to Login
           </Button>
         </div>

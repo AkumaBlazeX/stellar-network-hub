@@ -315,8 +315,8 @@ export default function Search() {
                               </Button>
                             )}
                             {result.type === 'company' && (
-                              <Button variant="outline" size="sm">
-                                View Company
+                              <Button variant="outline" size="sm" asChild>
+                                <Link to={`/company/${result.id}`}>View Company</Link>
                               </Button>
                             )}
                           </div>
